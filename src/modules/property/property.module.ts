@@ -5,10 +5,13 @@ import { PropertyService } from './services/property.service';
 import { PropertyController } from './controllers/property.controller';
 import { Producer } from '../producer/entities/producer.entity';
 import { AreaValidation } from './validators/area.validator';
+import { PropertyRepository } from './repositories/property.repository';
+import { ProducerModule } from '../producer/producer.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Producer])],
+  imports: [TypeOrmModule.forFeature([Property, Producer]), ProducerModule],
   controllers: [PropertyController],
-  providers: [PropertyService, AreaValidation],
+  providers: [PropertyService, AreaValidation, PropertyRepository],
+  exports: [PropertyRepository]
 })
-export class PropertyModule {}
+export class PropertyModule { }

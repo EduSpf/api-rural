@@ -1,53 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Crop } from '../entities/crop.entity';
-import { Repository } from 'typeorm';
+// src/modules/crop/services/crop.service.ts
+import { Injectable } from '@nestjs/common';
+import { CropRepository } from '../repositories/crop.repository';
 import { CreateCropDto } from '../dto/create-crop.dto';
 import { UpdateCropDto } from '../dto/update-crop.dto';
-import { Harvest } from '../../harvest/entities/harvest.entity';
+import { Crop } from '../entities/crop.entity';
 
 @Injectable()
 export class CropService {
-  constructor(
-    @InjectRepository(Crop)
-    private cropRepo: Repository<Crop>,
-    @InjectRepository(Harvest)
-    private harvestRepo: Repository<Harvest>,
-  ) {}
+  constructor(private readonly cropRepository: CropRepository) {}
 
-  async create(dto: CreateCropDto): Promise<Crop> {
-    const harvest = await this.harvestRepo.findOne({ where: { id: dto.harvestId } });
-    if (!harvest) throw new NotFoundException('Safra não encontrada');
-
-    const crop = this.cropRepo.create({ name: dto.name, harvest });
-    return this.cropRepo.save(crop);
+  create(dto: CreateCropDto): Promise<Crop> {
+    return this.cropRepository.create(dto);
   }
 
   findAll(): Promise<Crop[]> {
-    return this.cropRepo.find({ relations: ['harvest'] });
+    return this.cropRepository.findAll();
   }
 
-  async findOne(id: string): Promise<Crop> {
-    const crop = await this.cropRepo.findOne({ where: { id }, relations: ['harvest'] });
-    if (!crop) throw new NotFoundException('Cultura não encontrada');
-    return crop;
+  findOne(id: string): Promise<Crop> {
+    return this.cropRepository.findById(id);
   }
 
-  async update(id: string, dto: UpdateCropDto): Promise<Crop> {
-    const crop = await this.findOne(id);
-
-    if (dto.harvestId) {
-      const harvest = await this.harvestRepo.findOne({ where: { id: dto.harvestId } });
-      if (!harvest) throw new NotFoundException('Safra não encontrada');
-      crop.harvest = harvest;
-    }
-
-    crop.name = dto.name ?? crop.name;
-    return this.cropRepo.save(crop);
+  update(id: string, dto: UpdateCropDto): Promise<Crop> {
+    return this.cropRepository.update(id, dto);
   }
 
-  async remove(id: string): Promise<void> {
-    const crop = await this.findOne(id);
-    await this.cropRepo.remove(crop);
+  remove(id: string): Promise<void> {
+    return this.cropRepository.delete(id);
   }
 }

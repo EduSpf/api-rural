@@ -1,65 +1,58 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Property } from '../entities/property.entity';
-import { Repository } from 'typeorm';
+import { PropertyRepository } from '../repositories/property.repository';
 import { CreatePropertyDto } from '../dto/create-property.dto';
 import { UpdatePropertyDto } from '../dto/update-property.dto';
-import { Producer } from '../../producer/entities/producer.entity';
+import { Property } from '../entities/property.entity';
+import { ProducerRepository } from '../../producer/repository/producer.repository';
+
+
 
 @Injectable()
 export class PropertyService {
   constructor(
-    @InjectRepository(Property)
-    private propertyRepo: Repository<Property>,
-
-    @InjectRepository(Producer)
-    private producerRepo: Repository<Producer>,
+    private readonly propertyRepo: PropertyRepository,
+    private readonly producerRepo: ProducerRepository,
   ) {}
 
-async create(dto: CreatePropertyDto) {
-  const producer = await this.producerRepo.findOneBy({ id: dto.producerId });
-  if (!producer) throw new NotFoundException('Produtor não encontrado');
+  async create(dto: CreatePropertyDto): Promise<Property> {
+    const producer = await this.producerRepo.findById(dto.producerId);
+    if (!producer) {
+      throw new NotFoundException('Produtor não encontrado');
+    }
 
-  const { area_total, area_agriculture, area_vegetation } = dto;
+    const { area_total, area_agriculture, area_vegetation } = dto;
+    if (area_agriculture + area_vegetation > area_total) {
+      throw new BadRequestException(
+        'A soma das áreas agricultável e de vegetação não pode ultrapassar a área total da fazenda.',
+      );
+    }
 
-  if (area_agriculture + area_vegetation > area_total) {
-    throw new BadRequestException(
-      'A soma das áreas agricultável e de vegetação não pode ultrapassar a área total da fazenda.',
-    );
-  }
-
-  const property = this.propertyRepo.create({
-    ...dto,
-    producer,
-  });
-
-  return this.propertyRepo.save(property);
-}
-
-
-  findAll() {
-    return this.propertyRepo.find({
-      relations: ['producer', 'harvests'],
+    return this.propertyRepo.create({
+      ...dto,
+      producer,
     });
   }
 
-  async findOne(id: string) {
-    const prop = await this.propertyRepo.findOne({
-      where: { id },
-      relations: ['producer', 'harvests'],
-    });
-    if (!prop) throw new NotFoundException('Propriedade não encontrada');
-    return prop;
+  async findAll(): Promise<Property[]> {
+    return this.propertyRepo.findAll();
   }
 
-  async update(id: string, dto: UpdatePropertyDto) {
-    const prop = await this.findOne(id);
-    Object.assign(prop, dto);
-    return this.propertyRepo.save(prop);
+  async findOne(id: string): Promise<Property> {
+    const property = await this.propertyRepo.findById(id);
+    if (!property) {
+      throw new NotFoundException('Propriedade não encontrada');
+    }
+    return property;
   }
 
-  async remove(id: string) {
-    const prop = await this.findOne(id);
-    return this.propertyRepo.remove(prop);
+  async update(id: string, dto: UpdatePropertyDto): Promise<Property> {
+    const property = await this.findOne(id);
+    Object.assign(property, dto);
+    return this.propertyRepo.create(property);
+  }
+
+  async remove(id: string): Promise<void> {
+    const property = await this.findOne(id);
+    await this.propertyRepo.delete(property.id);
   }
 }

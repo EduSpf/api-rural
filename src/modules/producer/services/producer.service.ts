@@ -1,35 +1,35 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Producer } from '../entities/producer.entity';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateProducerDto } from '../dto/create-producer.dto';
+import { Producer } from '../entities/producer.entity';
 import { UpdateProducerDto } from '../dto/update-producer.dto';
+import { DocumentValidator } from '../../../common/validators/document.validator';
+import { ProducerRepository } from '../repository/producer.repository';
 
 @Injectable()
 export class ProducerService {
-  constructor(
-    @InjectRepository(Producer)
-    private readonly repo: Repository<Producer>,
-  ) {}
+  constructor(private readonly producerRepository: ProducerRepository) {}
 
   async create(dto: CreateProducerDto): Promise<Producer> {
-    if (!this.isValidDocument(dto.document)) {
-      throw new BadRequestException('Documento inválido (CPF ou CNPJ)');
+    if (!DocumentValidator.isValid(dto.document)) {
+      throw new BadRequestException('Documento inválido');
     }
 
-    const exists = await this.repo.findOne({ where: { document: dto.document } });
+    const exists = await this.producerRepository.findByDocument(dto.document);
     if (exists) throw new BadRequestException('Documento já cadastrado');
 
-    const producer = this.repo.create(dto);
-    return this.repo.save(producer);
+    return this.producerRepository.create(dto);
   }
 
   async findAll(): Promise<Producer[]> {
-    return this.repo.find({ relations: ['properties'] });
+    return this.producerRepository.findAll();
   }
 
   async findOne(id: string): Promise<Producer> {
-    const producer = await this.repo.findOne({ where: { id }, relations: ['properties'] });
+    const producer = await this.producerRepository.findById(id);
     if (!producer) throw new NotFoundException('Produtor não encontrado');
     return producer;
   }
@@ -37,16 +37,11 @@ export class ProducerService {
   async update(id: string, dto: UpdateProducerDto): Promise<Producer> {
     const producer = await this.findOne(id);
     Object.assign(producer, dto);
-    return this.repo.save(producer);
+    return this.producerRepository.update(producer);
   }
 
   async remove(id: string): Promise<void> {
     const producer = await this.findOne(id);
-    await this.repo.remove(producer);
-  }
-
-  private isValidDocument(document: string): boolean {
-    const cleaned = document.replace(/\D/g, '');
-    return cleaned.length === 11 || cleaned.length === 14;
+    await this.producerRepository.remove(producer);
   }
 }
