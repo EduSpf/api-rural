@@ -84,12 +84,6 @@ npx ts-node src/seeds/seed.ts
 ```bash
 npm run test
 ```
-
-### Integrados (e2e)
-```bash
-npm run test:e2e
-```
-
 ---
 
 ## 🧑‍💻 Arquitetura e Boas Práticas
@@ -109,6 +103,7 @@ npm run test:e2e
 
 - `modules/` - Separado por domínio: producer, property, harvest, crop
 - `services/` - Regras de negócio
+- `Repository/` - Regras associado ao banco de dados
 - `controllers/` - Rotas REST
 - `dto/` - Contratos de dados
 - `entities/` - Entidades TypeORM
@@ -124,4 +119,4 @@ Eduardo Santana Santos
 
 ---
 
-> Projeto completo com Swagger, dockerizado, seguindo Clean Architecture, SOLID, testado e documentado.
+> Projeto completo com Swagger, dockerizado, seguindo Clean code, SOLID, testado e documentado, e arquitera em camadas.
